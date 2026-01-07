@@ -1,0 +1,15 @@
+services:
+  db-hub:
+    image: postgres:15-alpine
+    container_name: hub_postgres
+    environment:
+      - POSTGRES_USER=user_hub
+      - POSTGRES_PASSWORD=password_hub
+      - POSTGRES_DB=db_proximite
+    ports:
+      - "5432:5432"
+    volumes:
+      - hub_data:/var/lib/postgresql/data
+
+volumes:
+  hub_data:

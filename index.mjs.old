@@ -1,0 +1,27 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post('/submit', async (req, res) => {
+  try {
+    const { email, nom, prenom, metier, code_postal } = req.body;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Email invalide' });
+    }
+
+    res.json({ status: 'OK', email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('API démarrée sur http://localhost:3000');
+});

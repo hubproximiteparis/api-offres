@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub Proximité - Mobile Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .app-icon { transition: all 0.2s ease; cursor: pointer; }
+        .app-icon:active { transform: scale(0.9); }
+        .grid-container { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
+    </style>
+</head>
+<body class="grid-container min-h-screen font-sans text-gray-900">
+
+    <header class="p-6 pb-2">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-indigo-900 tracking-tighter">HUB PROXIMITÉ</h1>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Prototype v2.0 • 2026</p>
+            </div>
+            <button onclick="changerOnglet('favoris')" class="bg-white p-3 rounded-2xl shadow-sm text-red-500">
+                <i class="fas fa-heart"></i>
+            </button>
+        </div>
+
+        <div id="search-section" class="bg-white p-4 rounded-3xl shadow-xl border border-white/50 mb-6">
+            <div class="flex flex-col gap-3">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-indigo-400"></i>
+                    <input type="text" id="metier" placeholder="Métier ou Compétence" class="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                </div>
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="fas fa-map-pin absolute left-4 top-3.5 text-red-400"></i>
+                        <input type="text" id="ville" placeholder="Code Postal" class="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                    </div>
+                    <button onclick="rechercher()" class="bg-indigo-600 text-white px-6 rounded-2xl font-black shadow-lg shadow-indigo-200">SCAN</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="px-6 pb-24">
+        
+        <h2 class="text-[10px] font-black text-gray-400 mb-3 tracking-widest uppercase">Emploi & Opportunités</h2>
+        <div class="grid grid-cols-4 gap-4 mb-8">
+            <div onclick="window.open('https://www.apec.fr', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-blue-600 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-user-tie"></i></div>
+                <span class="text-[10px] mt-2 font-bold">APEC</span>
+            </div>
+            <div onclick="ouvrirLienLocal('https://www.google.com/search?q=Mission+Locale+proche+de+')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-orange-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-users"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Missions L.</span>
+            </div>
+            <div onclick="window.open('https://labonneboite.francetravail.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-yellow-400 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-lightbulb"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Bonne Boite</span>
+            </div>
+            <div onclick="window.open('https://immersion-facilitee.beta.gouv.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-emerald-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-walking"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Immersion</span>
+            </div>
+        </div>
+
+        <h2 class="text-[10px] font-black text-gray-400 mb-3 tracking-widest uppercase">Droits & Santé</h2>
+        <div class="grid grid-cols-4 gap-4 mb-8">
+            <div onclick="window.open('https://www.mesdroitssociaux.gouv.fr/dd1pnds-ria/#destination/simu-foyer', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-indigo-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-calculator"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Simulateur</span>
+            </div>
+            <div onclick="window.open('https://www.ameli.fr/paris/assure/adresses-et-contacts/l-aide-pour-une-complementaire-sante/obtenir-la-complementaire-sante-solidaire', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-blue-400 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-hand-holding-medical"></i></div>
+                <span class="text-[10px] mt-2 font-bold">CSS Ameli</span>
+            </div>
+            <div onclick="window.open('https://www.caf.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-sky-600 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-house-user"></i></div>
+                <span class="text-[10px] mt-2 font-bold">CAF</span>
+            </div>
+            <div onclick="ouvrirLienLocal('https://www.google.com/search?q=CCAS+mairie+')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-red-600 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-landmark"></i></div>
+                <span class="text-[10px] mt-2 font-bold">CCAS</span>
+            </div>
+        </div>
+
+        <h2 class="text-[10px] font-black text-gray-400 mb-3 tracking-widest uppercase">Formation & Outils</h2>
+        <div class="grid grid-cols-4 gap-4 mb-8">
+            <div onclick="window.open('https://www.moncompteformation.gouv.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-purple-600 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-graduation-cap"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Mon CPF</span>
+            </div>
+            <div onclick="window.open('https://www.afpa.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-rose-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-tools"></i></div>
+                <span class="text-[10px] mt-2 font-bold">AFPA</span>
+            </div>
+            <div onclick="window.open('https://www.canva.com/fr_fr/creer/cv/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-cyan-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-file-pen"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Canva CV</span>
+            </div>
+            <div onclick="window.open('https://plateforme.diagoriente.fr/', '_blank')" class="app-icon flex flex-col items-center">
+                <div class="w-14 h-14 bg-fuchsia-500 rounded-2xl shadow-lg flex items-center justify-center text-white text-xl"><i class="fas fa-brain"></i></div>
+                <span class="text-[10px] mt-2 font-bold">Diagoriente</span>
+            </div>
+        </div>
+
+        <div id="resultats" class="grid grid-cols-1 gap-4"></div>
+    </main>
+
+    <script>
+        // Logique de localisation pour CCAS et Missions Locales
+        function ouvrirLienLocal(baseUrl) {
+            const cp = document.getElementById('ville').value || "";
+            window.open(baseUrl + cp, '_blank');
+        }
+
+        async function rechercher() {
+            const m = document.getElementById('metier').value;
+            const v = document.getElementById('ville').value;
+            const resZone = document.getElementById('resultats');
+
+            if(!m) return alert("Saisissez un métier");
+
+            resZone.innerHTML = `<div class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-2xl"></i></div>`;
+            
+            try {
+                const res = await fetch(`/api/search?metier=${encodeURIComponent(m)}&ville=${v}`);
+                const offres = await res.json();
+                afficher(offres);
+            } catch (e) {
+                resZone.innerHTML = `<p class="text-center text-red-500 font-bold p-4">Erreur serveur</p>`;
+            }
+        }
+
+        function afficher(offres) {
+            const resZone = document.getElementById('resultats');
+            if(!offres.length) {
+                resZone.innerHTML = `<p class="text-center py-10 text-gray-400 font-medium italic">Aucune offre trouvée.</p>`;
+                return;
+            }
+            resZone.innerHTML = offres.map(o => `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mb-4">
+                    <h3 class="font-black text-indigo-900 text-sm uppercase mb-1">${o.intitule}</h3>
+                    <p class="text-[11px] text-gray-500 font-bold mb-3"><i class="fas fa-building mr-1"></i> ${o.entreprise?.nom || 'Anonyme'} • ${o.lieuTravail?.libelle || 'Local'}</p>
+                    <a href="${o.origineOffre?.urlOrigine || o.url}" target="_blank" class="block w-full text-center py-3 bg-indigo-50 text-indigo-700 rounded-2xl text-[10px] font-black uppercase tracking-widest">Voir l'offre</a>
+                </div>
+            `).join('');
+        }
+
+        function changerOnglet(type) {
+            if(type === 'favoris') {
+                window.location.href = '/api/mes-favoris'; // Simplifié pour le test
+            } else {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+[
+  { "code_rome": "M1805", "libelle": "Développeur / Développeuse informatique", "libelle_ascii": "developpeur informatique" },
+  { "code_rome": "D1102", "libelle": "Boulanger / Boulangère", "libelle_ascii": "boulanger boulangere" },
+  { "code_rome": "D1101", "libelle": "Boucher / Bouchère", "libelle_ascii": "boucher bouchere" },
+  { "code_rome": "J1301", "libelle": "Infirmier / Infirmière", "libelle_ascii": "infirmier infirmiere" },
+  { "code_rome": "F1604", "libelle": "Plombier / Plombière", "libelle_ascii": "plombier plombiere" },
+  { "code_rome": "G1602", "libelle": "Serveur / Serveuse de restaurant", "libelle_ascii": "serveur serveuse restaurant" },
+  { "code_rome": "N4101", "libelle": "Conducteur / Conductrice de transport de marchandises", "libelle_ascii": "conducteur poids lourd" },
+  { "code_rome": "D1507", "libelle": "Mise en rayon libre-service", "libelle_ascii": "mise en rayon" },
+  { "code_rome": "K1304", "libelle": "Aide à domicile", "libelle_ascii": "aide a domicile" },
+  { "code_rome": "M1607", "libelle": "Agent / Agente administrative", "libelle_ascii": "secretaire administratif" },
+  { "code_rome": "M1805", "libelle": "Développeur / Développeuse informatique", "libelle_ascii": "developpeur informatique" },
+  { "code_rome": "M1802", "libelle": "Expert / Experte en cybersécurité", "libelle_ascii": "cybersecurite informatique" },
+  { "code_rome": "M1806", "libelle": "Data scientist", "libelle_ascii": "data scientist informatique" },
+  { "code_rome": "D1102", "libelle": "Boulanger / Boulangère", "libelle_ascii": "boulanger" },
+  { "code_rome": "D1101", "libelle": "Boucher / Bouchère", "libelle_ascii": "boucher" },
+  { "code_rome": "F1604", "libelle": "Plombier / Plombière", "libelle_ascii": "plombier" },
+  { "code_rome": "I1304", "libelle": "Technicien / Technicienne de maintenance", "libelle_ascii": "maintenance" },
+  { "code_rome": "H1502", "libelle": "Opérateur / Opératrice de production", "libelle_ascii": "production" },
+  { "code_rome": "J1301", "libelle": "Infirmier / Infirmière", "libelle_ascii": "infirmier" }
+]

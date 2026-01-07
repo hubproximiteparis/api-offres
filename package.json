@@ -1,0 +1,40 @@
+{
+  "name": "api-offres",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "API de gestion des offres avec intégration Google Sheets",
+  "main": "index.cjs",
+  "scripts": {
+    "start": "node index.cjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "api",
+    "express",
+    "google-sheets"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase-js/source": "github:supabase/supabase-js",
+    "@supabase/supabase-js": "^2.89.0",
+    "axios": "^1.13.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1",
+    "express-basic-auth": "^1.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^7.0.12",
+    "pg": "^8.16.3",
+    "react-native-safe-area-context": "^5.6.2",
+    "winston": "^3.19.0",
+    "xml2js": "^0.6.2"
+  }
+}
