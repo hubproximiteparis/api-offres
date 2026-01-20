@@ -1,0 +1,109 @@
+<style>
+    /* Ajoutez ou fusionnez ce style unique pour les suggestions */
+    .suggestions-list {
+        display: none;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 250px;
+        overflow-y: auto;
+        margin-top: 5px;
+    }
+    .suggestion-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-bottom: 1px solid #f7fafc;
+    }
+    .suggestion-item:hover { background: #edf2f7; color: var(--primary); }
+</style>
+
+<div class="container">
+    <div class="header-scanner">
+        <i class="fas fa-satellite-dish"></i>
+        <h2>Scanner de Marché</h2>
+    </div>
+
+    <div class="search-group">
+        <label>Quel métier recherchez-vous ?</label>
+        <div class="input-wrapper">
+            <i class="fas fa-briefcase"></i>
+            <input type="text" id="jobSearch" placeholder="Ex: Développeur..." autocomplete="off">
+        </div>
+        <div id="jobSuggestions" class="suggestions-list"></div>
+    </div>
+
+    <div class="search-group">
+        <label>Où chercher ? (Ville ou CP)</label>
+        <div class="input-wrapper">
+            <i class="fas fa-map-marker-alt"></i>
+            <input type="text" id="villeSearch" placeholder="Entrez une ville..." autocomplete="off">
+        </div>
+        <div id="villeSuggestions" class="suggestions-list"></div>
+    </div>
+
+    <button class="btn-search" id="scanBtn" onclick="lancerScan()">
+        <i class="fas fa-search"></i><span>Lancer le Scanner</span>
+    </button>
+</div>
+
+<script>
+    // Variables globales
+    const jobSearch = document.getElementById('jobSearch');
+    const villeSearch = document.getElementById('villeSearch');
+    let selectedRome = ""; 
+    let selectedZip = "";
+
+    // FONCTION AUTO-COMPLÉTION MÉTIER (ROME)
+    jobSearch.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (query.length < 3) return;
+
+        const { data } = await supabaseClient.functions.invoke('market-data', {
+            body: { action: 'search-rome', query: query }
+        });
+
+        if (data) {
+            const html = data.map(m => `<div class="suggestion-item" onclick="selectJob('${m.libelle}', '${m.codeRome || m.code}')">${m.libelle}</div>`).join('');
+            document.getElementById('jobSuggestions').innerHTML = html;
+            document.getElementById('jobSuggestions').style.display = 'block';
+        }
+    });
+
+    window.selectJob = (libelle, code) => {
+        jobSearch.value = libelle;
+        selectedRome = code;
+        document.getElementById('jobSuggestions').style.display = 'none';
+    };
+
+    // FONCTION AUTO-COMPLÉTION VILLE
+    villeSearch.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (query.length < 3) return;
+
+        const { data } = await supabaseClient.functions.invoke('market-data', {
+            body: { action: 'search-location', query: query }
+        });
+
+        if (data) {
+            const html = data.map(v => `<div class="suggestion-item" onclick="selectVille('${v.label}', '${v.code}')">${v.label} (${v.code})</div>`).join('');
+            document.getElementById('villeSuggestions').innerHTML = html;
+            document.getElementById('villeSuggestions').style.display = 'block';
+        }
+    });
+
+    window.selectVille = (label, code) => {
+        villeSearch.value = label;
+        selectedZip = code;
+        document.getElementById('villeSuggestions').style.display = 'none';
+    };
+
+    function lancerScan() {
+        if (!selectedRome || !selectedZip) return alert("Sélectionnez un métier et une ville dans les listes.");
+        window.location.href = `resultats.html?metier=${selectedRome}&ville=${selectedZip}&label=${villeSearch.value}`;
+    }
+</script>

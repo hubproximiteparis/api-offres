@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <link rel="manifest" href="/manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Hub Proximité</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0;">
+
+    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center;">
+        <h2 style="color: #1a365d; margin-bottom: 10px;">Hub Proximité</h2>
+        <p style="color: #718096; margin-bottom: 30px;">Identifiez-vous pour accéder au Hub</p>
+        
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+            
+            <input type="password" id="password" placeholder="Mot de passe" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+            
+            <button type="submit" id="submitBtn" 
+                    style="width: 100%; padding: 12px; background: #1a365d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.3s;">
+                Se connecter
+            </button>
+        </form>
+
+        <div style="margin-top: 20px;">
+            <a href="#" id="forgotPassword" style="color: #1a365d; text-decoration: none; font-size: 13px; font-weight: 500;">Mot de passe oublié ?</a>
+        </div>
+        
+        <div id="message" style="margin-top: 20px; font-size: 14px; min-height: 20px; border-radius: 4px; padding: 5px;"></div>
+    </div>
+
+    <script>
+    // --- CONFIGURATION ---
+    // On définit l'URL du backend explicitement pour éviter les erreurs CORS
+    const API_URL = "http://localhost:3050"; 
+let supabaseClient;
+
+    // 1. Initialisation de la configuration via le serveur Node
+    async function initSupabase() {
+        const msgDiv = document.getElementById('message');
+        try {
+            // Appel vers le port 3050
+            const response = await fetch(`${API_URL}/api/config`);
+            if (!response.ok) throw new Error("Réponse serveur non valide");
+            
+            const config = await response.json();
+            
+            // Initialisation du client Supabase avec les clés reçues
+            supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+            console.log("✅ Système d'authentification prêt");
+        } catch (err) {
+            console.error("❌ Erreur d'initialisation :", err);
+            msgDiv.innerText = "Erreur de liaison avec le serveur API (Port 3050). Vérifiez que le serveur Node est lancé.";
+            msgDiv.style.color = "red";
+        }
+    }
+
+    initSupabase();
+
+    // 2. Gestion de la connexion
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const msgDiv = document.getElementById('message');
+        const btn = document.getElementById('submitBtn');
+
+        if (!supabaseClient) {
+            msgDiv.innerText = "⏳ Le système démarre, réessayez dans 2 secondes...";
+            msgDiv.style.color = "#856404";
+            return;
+        }
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        // UI : État de chargement
+        btn.innerText = "Connexion...";
+        btn.disabled = true;
+        msgDiv.innerText = "";
+
+        try {
+            // Tentative de connexion via Supabase Auth
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                msgDiv.innerText = "❌ " + error.message;
+                msgDiv.style.color = "#d9534f";
+                btn.innerText = "Se connecter";
+                btn.disabled = false;
+            } else if (data.session) {
+                // Stockage du token pour les futures requêtes API (Recherche de postes)
+                localStorage.setItem('hub_token', data.session.access_token);
+
+                msgDiv.innerText = "✅ Connexion réussie ! Redirection...";
+                msgDiv.style.color = "#28a745";
+                
+                // Redirection vers index.html
+                setTimeout(() => { window.location.href = 'index.html'; }, 800);
+            }
+        } catch (err) {
+            msgDiv.innerText = "Une erreur technique est survenue.";
+            console.error(err);
+            btn.disabled = false;
+            btn.innerText = "Se connecter";
+        }
+    });
+
+    // 3. Gestion du mot de passe oublié
+    document.getElementById('forgotPassword').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const msgDiv = document.getElementById('message');
+
+        if (!email) {
+            msgDiv.innerText = "Saisissez votre email ci-dessus d'abord.";
+            msgDiv.style.color = "#856404";
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/update-password.html',
+            });
+
+            if (error) throw error;
+            
+            msgDiv.innerText = "📧 Lien envoyé ! Vérifiez votre boîte mail.";
+            msgDiv.style.color = "green";
+        } catch (err) {
+            msgDiv.innerText = "Erreur : " + err.message;
+            msgDiv.style.color = "red";
+        }
+    });
+    </script>
+</body>
+</html>

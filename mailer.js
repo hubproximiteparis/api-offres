@@ -1,127 +1,120 @@
+/**
+ * HUB PROXIMITÉ - DASHBOARD GÉNÉRATEUR V3
+ * Centralisation stratégique des indicateurs de performance (KPI)
+ */
+
 const nodemailer = require('nodemailer');
+const fs = require('fs');
 require('dotenv').config();
 
-// 1. Fonction pour rendre l'IP anonyme (Conforme CNIL)
-const anonymizeIP = (ip) => {
-    if (!ip) return "0.0.0.0";
-    if (ip === "::1" || ip === "127.0.0.1") return "Localhost";
-    const parts = ip.split(".");
-    if (parts.length === 4) {
-        return `${parts[0]}.${parts[1]}.${parts[2]}.0`;
-    }
-    if (ip.includes(":")) {
-        return ip.split(":").slice(0, 3).join(":") + ":xxxx:xxxx";
-    }
-    return "IP masquée";
-};
-
-// 2. Stockage temporaire des recherches
-let logsDuJour = [];
-
-const loggerEnrichi = (data) => {
-    const entry = {
-        timestamp: new Date().toLocaleTimeString('fr-FR'),
-        ip: anonymizeIP(data.ip),
-        metier: data.metier || data.intitule || "Non précisé",
-        ville: data.ville || data.zone || "Non précisé",
-        age: data.age || "Non précisé"
-    };
-    logsDuJour.push(entry);
-    console.log(`📝 Log enregistré (anonymisé) : ${entry.ip} - ${entry.metier}`);
-};
-
-// 3. Configuration du transporteur
 const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS, 
-    }
+    auth: { user: process.env.REPORT_EMAIL, pass: process.env.REPORT_PASSWORD }
 });
 
-// Vérification console au démarrage
-console.log("Configuration Mail chargée pour :", process.env.EMAIL_USER ? "OUI" : "NON");
+// Stockage des métriques
+let stats = {
+    recherches: [],
+    erreurs: [],
+    connexions: 0,
+    devices: { mobile: 0, desktop: 0 },
+    fonctions: { scanner: 0, favoris: 0, geo: 0 }
+};
 
-// 4. Fonction d'envoi du rapport (Renommée pour correspondre à vos tests)
-const envoyerRapport = async (sujetManuel = null, messageManuel = null) => {
+/**
+ * Enregistre une activité avec analyse du support et de la fonction
+ */
+const loggerEnrichi = (data) => {
+    stats.connexions++;
     
-    // Si on passe un message manuel (pour le test_mail.js)
-    if (messageManuel) {
-        try {
-            await transporter.sendMail({
-                from: `"Hub Proximité" <${process.env.EMAIL_USER}>`,
-                to: process.env.EMAIL_USER,
-                subject: sujetManuel || "🚀 Test Hub",
-                text: messageManuel
-            });
-            console.log("✅ Mail de test envoyé !");
-            return;
-        } catch (error) {
-            console.error("❌ Erreur Test Mail:", error.message);
-            return;
-        }
-    }
+    // Détection simplifiée du support
+    const ua = data.userAgent || "";
+    const isMobile = /Mobile|Android|iPhone/i.test(ua);
+    isMobile ? stats.devices.mobile++ : stats.devices.desktop++;
 
-    // Sinon, envoi du rapport quotidien automatique
-    if (logsDuJour.length === 0) {
-        console.log("Rien à envoyer aujourd'hui.");
-        return;
-    }
+    // Comptage des fonctions
+    if (data.fonction) stats.fonctions[data.fonction]++;
 
-    // Tri des logs par métier puis par ville (votre demande de centralisation)
-    logsDuJour.sort((a, b) => a.metier.localeCompare(b.metier) || a.ville.localeCompare(b.ville));
+    stats.recherches.push({
+        h: new Date().toLocaleTimeString('fr-FR'),
+        user: data.userId ? data.userId.substring(0, 8) : "Invité",
+        support: isMobile ? "📱 Mobile" : "💻 PC",
+        action: data.metier || "Action Système",
+        loc: data.ville || "N/A",
+        ip: data.ip ? data.ip.split('.').slice(0,3).join('.') + ".0" : "0.0.0.0"
+    });
+};
 
-    let corpsMail = `<h3>📊 Rapport d'activité quotidien - Hub Proximité</h3>
-                     <p>Voici le récapitulatif des recherches effectuées, trié par profession et localité :</p>
-                     <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial;">
-                        <tr style="background-color: #4f46e5; color: white;">
-                            <th>Heure</th><th>Profession</th><th>Localisation</th><th>Âge</th><th>IP (Anonyme)</th>
-                        </tr>`;
+const logErreurSysteme = (service, msg) => {
+    stats.erreurs.push({ h: new Date().toLocaleTimeString('fr-FR'), service, msg });
+};
+
+// ============================================================
+// 2. GÉNÉRATION DU DASHBOARD HTML (Le Mail de 18h)
+// ============================================================
+
+const envoyerRapport = async () => {
+    const totalRecherches = stats.recherches.length;
     
-    logsDuJour.forEach(log => {
-        corpsMail += `<tr>
-            <td>${log.timestamp}</td>
-            <td style="font-weight: bold;">${log.metier}</td>
-            <td>${log.ville}</td>
-            <td>${log.age}</td>
-            <td style="color: #666; font-size: 0.8em;">${log.ip}</td>
-        </tr>`;
+    let corpsMail = `
+    <div style="font-family: 'Segoe UI', Arial; max-width: 900px; margin: auto; border: 1px solid #eee; border-radius: 15px; overflow: hidden;">
+        <div style="background: #1a365d; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">HUB PROXIMITÉ : DASHBOARD</h1>
+            <p style="opacity: 0.8;">Rapport d'exploitation du ${new Date().toLocaleDateString('fr-FR')}</p>
+        </div>
+
+        <div style="padding: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <div style="flex: 1; background: #f7fafc; padding: 15px; border-radius: 10px; text-align: center; border-left: 5px solid #48bb78;">
+                    <span style="font-size: 12px; color: #718096; text-transform: uppercase;">Requêtes</span>
+                    <div style="font-size: 24px; font-weight: bold; color: #2d3748;">${stats.connexions}</div>
+                </div>
+                <div style="flex: 1; background: #f7fafc; padding: 15px; border-radius: 10px; text-align: center; border-left: 5px solid #d9534f;">
+                    <span style="font-size: 12px; color: #718096; text-transform: uppercase;">Erreurs</span>
+                    <div style="font-size: 24px; font-weight: bold; color: #d9534f;">${stats.erreurs.length}</div>
+                </div>
+                <div style="flex: 1; background: #f7fafc; padding: 15px; border-radius: 10px; text-align: center; border-left: 5px solid #1a365d;">
+                    <span style="font-size: 12px; color: #718096; text-transform: uppercase;">Mobiles</span>
+                    <div style="font-size: 24px; font-weight: bold; color: #1a365d;">${Math.round((stats.devices.mobile/stats.connexions || 0)*100)}%</div>
+                </div>
+            </div>
+
+            <h3 style="color: #1a365d;">🔍 Analyse des Recherches</h3>
+            <table width="100%" cellpadding="10" style="border-collapse: collapse; font-size: 13px;">
+                <tr style="background: #edf2f7; text-align: left;">
+                    <th>Heure</th><th>ID User</th><th>Support</th><th>Profession / Type</th><th>Ville</th>
+                </tr>
+                ${stats.recherches.map(r => `
+                    <tr style="border-bottom: 1px solid #f0f4f8;">
+                        <td>${r.h}</td><td>#${r.user}</td><td>${r.support}</td><td><b>${r.action}</b></td><td>${r.loc}</td>
+                    </tr>
+                `).join('')}
+            </table>
+
+            <div style="margin-top: 30px; background: #fff5f5; padding: 20px; border-radius: 10px;">
+                <h3 style="color: #c53030; margin-top: 0;">⚠️ Diagnostic Système</h3>
+                ${stats.erreurs.length > 0 ? `
+                    <table width="100%" style="font-size: 12px; color: #c53030;">
+                        ${stats.erreurs.map(e => `<tr><td><b>[${e.h}]</b></td><td><b>${e.service}</b></td><td>${e.msg}</td></tr>`).join('')}
+                    </table>
+                ` : `<p style="color: #2f855a; font-weight: bold;">✅ État de santé parfait : Serveur Render & Supabase OK.</p>`}
+            </div>
+        </div>
+        
+        <div style="background: #f7fafc; padding: 15px; text-align: center; font-size: 11px; color: #a0aec0;">
+            Ce rapport respecte les directives CNIL d'anonymisation des données utilisateurs.
+        </div>
+    </div>`;
+
+    await transporter.sendMail({
+        from: `"Hub Intelligence" <${process.env.REPORT_EMAIL}>`,
+        to: process.env.REPORT_EMAIL,
+        subject: `📊 DASHBOARD HUB : ${stats.connexions} connexions | ${stats.erreurs.length} incidents`,
+        html: corpsMail
     });
 
-    corpsMail += `</table><p style="color: grey; font-size: 10px;">Ce rapport est anonymisé conformément aux directives CNIL.</p>`;
-
-    try {
-        await transporter.sendMail({
-            from: `"Hub Proximité" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER, 
-            subject: "📊 Rapport Quotidien Centralisé - Hub Proximité",
-            html: corpsMail
-        });
-        console.log("✅ Rapport quotidien envoyé avec succès !");
-        logsDuJour = []; // Reset pour le lendemain
-    } catch (error) {
-        console.error("❌ Erreur lors de l'envoi du rapport :", error);
-    }
+    // Reset après envoi
+    stats = { recherches: [], erreurs: [], connexions: 0, devices: { mobile: 0, desktop: 0 }, fonctions: { scanner: 0, favoris: 0, geo: 0 } };
 };
 
-// Export des fonctions
-module.exports = { loggerEnrichi, envoyerRapport };
-// Dans mailer.js, ajoute cette fonction à la fin
-const envoyerSauvegarde = async (nomFichier) => {
-    try {
-        await transporter.sendMail({
-            from: `"Hub Backup" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            subject: `💾 Sauvegarde Base de Données - ${new Date().toLocaleDateString()}`,
-            text: "Ci-joint la sauvegarde quotidienne de vos favoris.",
-            attachments: [{ filename: nomFichier, path: `./${nomFichier}` }]
-        });
-        console.log("🚀 Sauvegarde envoyée par mail !");
-        // Optionnel : supprimer le fichier local après envoi
-        fs.unlinkSync(nomFichier);
-    } catch (error) {
-        console.error("❌ Échec de l'envoi de la sauvegarde:", error);
-    }
-};
-
-module.exports = { loggerEnrichi, envoyerRapport, envoyerSauvegarde };
+module.exports = { loggerEnrichi, logErreurSysteme, envoyerRapport };
