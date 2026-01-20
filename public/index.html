@@ -89,28 +89,41 @@
 
     // CORRECTION : Recherche ROME via Supabase au lieu de localhost
     jobSearch.addEventListener('input', async () => {
-        const query = jobSearch.value;
-        if (query.length < 3) { jobSuggestions.style.display = 'none'; return; }
+    const query = jobSearch.value.trim();
+    if (query.length < 3) { 
+        jobSuggestions.style.display = 'none'; 
+        return; 
+    }
+    
+    try {
+        const res = await fetch(SUPABASE_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${ANON_KEY}` 
+            },
+            body: JSON.stringify({ action: "search-rome", query: query })
+        });
+        const data = await res.json();
         
-        try {
-            const res = await fetch(SUPABASE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-                body: JSON.stringify({ action: "search-rome", query: query })
-            });
-            const data = await res.json();
-            
-            if (Array.isArray(data) && data.length > 0) {
-                jobSuggestions.innerHTML = data.map(m => `
-                    <div class="suggestion-item" onclick="selectJob('${m.libelle.replace(/'/g, "\\'")}', '${m.code}')">
-                        ${m.libelle} (${m.code})
-                    </div>
-                `).join('');
-                jobSuggestions.style.display = 'block';
-            }
-        } catch(e) { console.error("Erreur Suggestions:", e); }
-    });
+        // On s'assure que data est bien un tableau
+        const suggestions = Array.isArray(data) ? data : (data.resultats || []);
 
+        if (suggestions.length > 0) {
+            jobSuggestions.innerHTML = suggestions.map(m => `
+                <div class="suggestion-item" onclick="selectJob('${m.libelle.replace(/'/g, "\\'")}', '${m.code}')">
+                    ${m.libelle} <span style="color:#cbd5e0; font-size:10px;">(${m.code})</span>
+                </div>
+            `).join('');
+            jobSuggestions.style.display = 'block'; // Force l'apparition
+        } else {
+            jobSuggestions.style.display = 'none';
+        }
+    } catch(e) { 
+        console.error("Erreur Suggestions:", e);
+        jobSuggestions.style.display = 'none';
+    }
+});
     function selectJob(libelle, code) {
         jobSearch.value = libelle;
         selectedRome = code;
@@ -118,50 +131,60 @@
     }
 
     async function runMainScan() {
-        const btn = document.getElementById('scanBtn');
-        const cp = document.getElementById('zipCode').value;
-        const rawInput = jobSearch.value.trim();
-        
-        // Détection intelligente du code ROME
-        const queryRome = selectedRome || (rawInput.match(/^[A-Z]\d{4}$/i) ? rawInput : "");
-        const queryLibelle = rawInput;
+    const btn = document.getElementById('scanBtn');
+    const cp = document.getElementById('zipCode').value;
+    const rawInput = jobSearch.value.trim();
+    
+    if(!rawInput) return alert("Indiquez un métier");
 
-        if(!queryLibelle) return alert("Indiquez un métier");
+    btn.disabled = true;
+    btn.innerText = "SCAN 360° EN COURS...";
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('resultsList').innerHTML = "Chargement...";
+    document.getElementById('companiesList').innerHTML = "Chargement...";
 
-        btn.disabled = true;
-        btn.innerText = "SCAN 360° EN COURS...";
-        document.getElementById('resultsSection').style.display = 'block';
-        document.getElementById('resultsList').innerHTML = "Chargement...";
-        document.getElementById('companiesList').innerHTML = "Chargement...";
+    try {
+        // 1. Appel des Offres Directes (fonctionne toujours avec le texte)
+        const resOffres = await fetch(SUPABASE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+            body: JSON.stringify({ action: "get-offres", metier: rawInput, code_postal: cp })
+        });
+        const offres = await resOffres.json();
+        displayOffres(offres, cp);
 
-        try {
-            // Appel Offres
-            const resOffres = await fetch(SUPABASE_URL, {
+        // 2. Récupération automatique du code ROME si absent
+        let queryRome = selectedRome;
+        if (!queryRome) {
+            const resRome = await fetch(SUPABASE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-                body: JSON.stringify({ action: "get-offres", metier: queryLibelle, code_postal: cp })
+                body: JSON.stringify({ action: "search-rome", query: rawInput })
             });
-            const offres = await resOffres.json();
-            displayOffres(offres, cp);
-
-            // Appel LBB (Marché Caché) - Uniquement si on a un code ROME
-            if (queryRome) {
-                const resLBB = await fetch(SUPABASE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-                    body: JSON.stringify({ action: "get-lbb", metier: queryRome, code_postal: cp })
-                });
-                const entreprises = await resLBB.json();
-                displayLBB(entreprises, cp);
-            } else {
-                document.getElementById('companiesList').innerHTML = "<div class='small-text' style='color:#e53e3e; padding:15px; background:#fff5f5; border-radius:10px;'>Veuillez sélectionner un métier dans la liste pour voir le Marché Caché.</div>";
+            const romeData = await resRome.json();
+            if (Array.isArray(romeData) && romeData.length > 0) {
+                queryRome = romeData[0].code; // On prend le premier résultat par défaut
             }
+        }
 
-        } catch (e) {
-            console.error("Erreur Scan:", e);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "LANCER LA RECHERCHE";
+        // 3. Appel LBB (Marché Caché)
+        if (queryRome) {
+            const resLBB = await fetch(SUPABASE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+                body: JSON.stringify({ action: "get-lbb", metier: queryRome, code_postal: cp })
+            });
+            const entreprises = await resLBB.json();
+            displayLBB(entreprises, cp);
+        } else {
+            document.getElementById('companiesList').innerHTML = "<div class='small-text' style='color:#e53e3e; padding:15px; background:#fff5f5; border-radius:10px;'>Métier non reconnu pour le Marché Caché. Essayez une autre appellation.</div>";
+        }
+
+    } catch (e) {
+        console.error("Erreur Scan:", e);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "LANCER LA RECHERCHE";
         }
     }
 
@@ -182,19 +205,32 @@
     }
 
     function displayLBB(data, cp) {
-        const list = document.getElementById('companiesList');
-        if (!Array.isArray(data) || data.length === 0) {
-            list.innerHTML = "<div class='small-text'>Aucune entreprise trouvée pour ce métier.</div>";
-            return;
-        }
-        list.innerHTML = data.map(ent => `
+    const list = document.getElementById('companiesList');
+    if (!Array.isArray(data) || data.length === 0) {
+        list.innerHTML = "<div class='small-text'>Aucune entreprise trouvée pour ce métier dans ce secteur.</div>";
+        return;
+    }
+
+    list.innerHTML = data.map(ent => {
+        // Génération visuelle des étoiles
+        const starCount = Math.round(ent.stars || 0);
+        const starsHtml = '⭐'.repeat(starCount) || 'N/A';
+
+        return `
             <div class="job-card card-lbb">
-                <div class="meta">Potentiel : ${ent.stars}/5 ⭐</div>
+                <div class="meta" style="color: #3182ce;">
+                    Potentiel d'embauche : ${starsHtml}
+                </div>
                 <h3>${ent.name}</h3>
-                <div class="description">${ent.address}</div>
-                <a href="https://www.google.com/search?q=${encodeURIComponent(ent.name)}+${cp}" target="_blank" class="btn-view">CANDIDATURE SPONTANÉE</a>
+                <div class="meta"><i class="fas fa-map-marker-alt"></i> ${ent.city || cp}</div>
+                <div class="description">Cette entreprise recrute souvent dans ce secteur d'activité mais n'a pas forcément publié d'offre.</div>
+                <a href="https://www.google.com/search?q=${encodeURIComponent(ent.name)}+${cp}+recrutement" 
+                   target="_blank" class="btn-view" style="border-color: #3182ce; color: #3182ce;">
+                   CANDIDATURE SPONTANÉE
+                </a>
             </div>
-        `).join('');
+        `;
+    }).join('');
     }
 
     function switchTab(type) {
